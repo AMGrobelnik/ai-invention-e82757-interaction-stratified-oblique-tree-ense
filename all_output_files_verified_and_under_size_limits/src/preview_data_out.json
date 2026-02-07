@@ -1,0 +1,77 @@
+[
+  {
+    "input": "Predict malignant (binary classification) given these features: mean radius=12.34, mean texture=26.86, mean perimeter=81.15, mean area=477.4, mean smoothness=0.1034, mean compactness=0.1353, mean conc...",
+    "context": {
+      "dataset_name": "breast_cancer",
+      "task_type": "classification",
+      "n_features": 30,
+      "n_samples_total": 569,
+      "target_name": "malignant",
+      "source": "sklearn.datasets.load_breast_cancer",
+      "feature_names": [
+        "mean radius",
+        "mean texture",
+        "mean perimeter"
+      ],
+      "feature_values": [
+        12.34,
+        26.86,
+        81.15
+      ],
+      "known_interactions": "mean_radius*mean_perimeter correlation (r>0.99), mean_area*worst_area cross-group correlation (r>0.97), texture*smoothness interaction, concavity*concave_points correlation — these feature groups form..."
+    },
+    "output": "0",
+    "dataset": "breast_cancer",
+    "split": "train"
+  },
+  {
+    "input": "Predict malignant (binary classification) given these features: mean radius=11.74, mean texture=14.02, mean perimeter=74.24, mean area=427.3, mean smoothness=0.07813, mean compactness=0.0434, mean con...",
+    "context": {
+      "dataset_name": "breast_cancer",
+      "task_type": "classification",
+      "n_features": 30,
+      "n_samples_total": 569,
+      "target_name": "malignant",
+      "source": "sklearn.datasets.load_breast_cancer",
+      "feature_names": [
+        "mean radius",
+        "mean texture",
+        "mean perimeter"
+      ],
+      "feature_values": [
+        11.74,
+        14.02,
+        74.24
+      ],
+      "known_interactions": "mean_radius*mean_perimeter correlation (r>0.99), mean_area*worst_area cross-group correlation (r>0.97), texture*smoothness interaction, concavity*concave_points correlation — these feature groups form..."
+    },
+    "output": "1",
+    "dataset": "breast_cancer",
+    "split": "train"
+  },
+  {
+    "input": "Predict malignant (binary classification) given these features: mean radius=9.397, mean texture=21.68, mean perimeter=59.75, mean area=268.8, mean smoothness=0.07969, mean compactness=0.06053, mean co...",
+    "context": {
+      "dataset_name": "breast_cancer",
+      "task_type": "classification",
+      "n_features": 30,
+      "n_samples_total": 569,
+      "target_name": "malignant",
+      "source": "sklearn.datasets.load_breast_cancer",
+      "feature_names": [
+        "mean radius",
+        "mean texture",
+        "mean perimeter"
+      ],
+      "feature_values": [
+        9.397,
+        21.68,
+        59.75
+      ],
+      "known_interactions": "mean_radius*mean_perimeter correlation (r>0.99), mean_area*worst_area cross-group correlation (r>0.97), texture*smoothness interaction, concavity*concave_points correlation — these feature groups form..."
+    },
+    "output": "1",
+    "dataset": "breast_cancer",
+    "split": "train"
+  }
+]

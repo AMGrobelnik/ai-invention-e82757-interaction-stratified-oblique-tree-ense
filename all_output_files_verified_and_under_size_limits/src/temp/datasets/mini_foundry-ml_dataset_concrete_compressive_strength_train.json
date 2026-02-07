@@ -1,0 +1,32 @@
+[
+  {
+    "Cement (component 1)(kg in a m^3 mixture)": 540.0,
+    "Blast Furnace Slag (component 2)(kg in a m^3 mixture)": 0.0,
+    "Fly Ash (component 3)(kg in a m^3 mixture)": 0.0,
+    "Water  (component 4)(kg in a m^3 mixture)": 162.0,
+    "Superplasticizer (component 5)(kg in a m^3 mixture)": 2.5,
+    "Coarse Aggregate  (component 6)(kg in a m^3 mixture)": 1040.0,
+    "Age (day)": 28,
+    "Concrete compressive strength(MPa, megapascals) ": 79.99
+  },
+  {
+    "Cement (component 1)(kg in a m^3 mixture)": 540.0,
+    "Blast Furnace Slag (component 2)(kg in a m^3 mixture)": 0.0,
+    "Fly Ash (component 3)(kg in a m^3 mixture)": 0.0,
+    "Water  (component 4)(kg in a m^3 mixture)": 162.0,
+    "Superplasticizer (component 5)(kg in a m^3 mixture)": 2.5,
+    "Coarse Aggregate  (component 6)(kg in a m^3 mixture)": 1055.0,
+    "Age (day)": 28,
+    "Concrete compressive strength(MPa, megapascals) ": 61.89
+  },
+  {
+    "Cement (component 1)(kg in a m^3 mixture)": 332.5,
+    "Blast Furnace Slag (component 2)(kg in a m^3 mixture)": 142.5,
+    "Fly Ash (component 3)(kg in a m^3 mixture)": 0.0,
+    "Water  (component 4)(kg in a m^3 mixture)": 228.0,
+    "Superplasticizer (component 5)(kg in a m^3 mixture)": 0.0,
+    "Coarse Aggregate  (component 6)(kg in a m^3 mixture)": 932.0,
+    "Age (day)": 270,
+    "Concrete compressive strength(MPa, megapascals) ": 40.27
+  }
+]

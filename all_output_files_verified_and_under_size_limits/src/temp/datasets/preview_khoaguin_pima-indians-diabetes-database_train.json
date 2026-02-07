@@ -1,0 +1,35 @@
+[
+  {
+    "Pregnancies": 6,
+    "Glucose": 148,
+    "BloodPressure": 72,
+    "SkinThickness": 35,
+    "Insulin": 0,
+    "BMI": 33.6,
+    "DiabetesPedigreeFunction": 0.627,
+    "Age": 50,
+    "y": 1
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 85,
+    "BloodPressure": 66,
+    "SkinThickness": 29,
+    "Insulin": 0,
+    "BMI": 26.6,
+    "DiabetesPedigreeFunction": 0.351,
+    "Age": 31,
+    "y": 0
+  },
+  {
+    "Pregnancies": 8,
+    "Glucose": 183,
+    "BloodPressure": 64,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 23.3,
+    "DiabetesPedigreeFunction": 0.672,
+    "Age": 32,
+    "y": 1
+  }
+]
