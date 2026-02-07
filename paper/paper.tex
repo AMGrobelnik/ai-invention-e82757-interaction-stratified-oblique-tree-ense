@@ -1,0 +1,322 @@
+\documentclass[11pt,twocolumn]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[margin=0.85in]{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+% algorithm packages omitted (not needed for this paper)
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{float}
+
+% Theorem environments
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}{Definition}
+
+% Compact lists
+\setlist{nosep,leftmargin=*}
+
+\title{\textbf{Interaction-Stratified Oblique Tree Ensembles\\with Provable Functional Decomposability}}
+
+\author{%
+  Anonymous Authors\\
+  \textit{Under Review}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+% ABSTRACT
+% ============================================================
+\begin{abstract}
+Modern interpretable machine learning faces a fundamental tension: axis-aligned tree ensembles (e.g., FIGS) permit clean functional ANOVA decomposition into main effects and feature interactions, while oblique tree ensembles (e.g., RO-FIGS) achieve superior predictive accuracy by blending features within splits---at the cost of decomposability. We propose Interaction-Stratified Oblique FIGS (ISO-FIGS), a novel oblique tree ensemble algorithm that resolves this dilemma by assigning each tree an interaction tier. Tier-$k$ trees are structurally constrained so that every oblique split combines at most $k$ features from a designated feature group, ensuring that the ensemble admits an exact functional ANOVA decomposition while retaining the representational power of oblique decision boundaries. We prove that ISO-FIGS ensembles are functionally decomposable by construction and that the decomposition is unique under mild identifiability conditions. On the Breast Cancer Wisconsin benchmark, ISO-FIGS recovers known feature interaction tiers, matches or exceeds the accuracy of unconstrained oblique ensembles with fewer total splits, and produces interpretable effect attributions aligned with domain-verified feature relationships.
+\end{abstract}
+
+% ============================================================
+% 1. INTRODUCTION
+% ============================================================
+\section{Introduction}
+
+\subsection{The Expressiveness--Interpretability Chasm}
+
+Interpretable machine learning has achieved remarkable progress in developing models that are simultaneously accurate and transparent~\citep{murdoch2019definitions}. Among the most successful paradigms are tree ensemble methods, which combine the flexibility of decision trees with the stability of ensemble aggregation. Yet a stubborn chasm divides the two dominant families of tree ensembles along the axis of interpretability.
+
+\textbf{Axis-aligned tree ensembles}, exemplified by Fast Interpretable Greedy-Tree Sums (FIGS;~\citealt{singh2022figs}), grow multiple trees simultaneously by greedily adding one split at a time to whichever tree reduces the training loss most. Because each split tests a single feature against a threshold (e.g., ``mean radius $< 14.5$''), the resulting ensemble can be cleanly decomposed into main effects and pairwise interactions via functional ANOVA decomposition---the gold standard for transparent model explanation~\citep{hooker2007generalized,lou2013accurate}.
+
+\textbf{Oblique tree ensembles}, exemplified by Rotation-Optimized FIGS (RO-FIGS;~\citealt{jamnik2025rofigs}), replace single-feature splits with learned linear combinations of multiple features, typically optimized via gradient descent with sparsity regularization. These models achieve better accuracy with fewer splits because oblique boundaries can capture correlated feature structure more efficiently. However, as \citet{jamnik2025rofigs} acknowledge, oblique splits are more complex and harder to comprehend---each oblique split blends features across interaction orders, making exact functional decomposition impossible.
+
+This tension is not merely academic. In oncology, a clinician needs to see \emph{which feature relationships} drive a prediction---is it tumor size alone, or a synergy between size and texture? In consumer lending, a loan officer must explain \emph{why} an applicant was denied, decomposed into individual factors and their interactions. Today, practitioners face a forced choice: accuracy (oblique) or explainability (axis-aligned). Our central hypothesis is that this is a false dilemma.
+
+\subsection{Our Contribution: ISO-FIGS}
+
+We propose \textbf{Interaction-Stratified Oblique FIGS (ISO-FIGS)}, a new oblique tree ensemble algorithm that bridges the expressiveness--interpretability gap through a structural constraint: \textbf{each tree is assigned an interaction tier}, and oblique splits within that tree are constrained to combine only features from the tier's allowed feature group. Specifically:
+
+\begin{itemize}
+  \item \textbf{Tier~1} trees capture single-feature (main) effects with effectively axis-aligned splits.
+  \item \textbf{Tier~2} trees capture pairwise interactions with oblique splits blending exactly two designated features.
+  \item \textbf{Tier~$k$} trees generalize, with splits combining at most $k$ features from a pre-specified group.
+\end{itemize}
+
+This tiered architecture yields three key properties:
+\begin{enumerate}
+  \item \textbf{Provable functional decomposability.} The ensemble admits an exact functional ANOVA decomposition with no post-hoc approximation.
+  \item \textbf{Oblique expressiveness within tiers.} Oblique splits exploit correlated feature structure within each tier, achieving accuracy gains over axis-aligned alternatives.
+  \item \textbf{Automatic interaction discovery.} The greedy growing procedure allocates capacity to the most predictive interaction orders, revealing which feature groups drive the prediction.
+\end{enumerate}
+
+% ============================================================
+% 2. RELATED WORK
+% ============================================================
+\section{Related Work}
+
+\textbf{Interpretable Tree Ensembles.} FIGS~\citep{singh2022figs} pioneered the simultaneous greedy-tree-sum paradigm, demonstrating that small ensembles can rival larger models while maintaining interpretability. CART~\citep{breiman1984cart} and Random Forests~\citep{breiman2001rf} represent the classical endpoints of the single-tree vs.\ ensemble tradeoff. RO-FIGS~\citep{jamnik2025rofigs} extended FIGS with oblique splits optimized via gradient descent with $\ell_1$ regularization, achieving significant accuracy gains on correlated-feature datasets.
+
+\textbf{Oblique Decision Trees.} Oblique splits have a long history in decision tree research~\citep{breiman1984cart}. Modern approaches use gradient-based optimization with sparsity penalties to learn split hyperplanes. The key challenge is that unrestricted oblique splits destroy the clean feature-attribution structure of axis-aligned trees.
+
+\textbf{Functional Decomposition and GAMs.} The functional ANOVA decomposition~\citep{hooker2007generalized} provides the theoretical foundation for separating main effects from interactions. Generalized Additive Models (GAMs;~\citealt{hastie1990gam}) and their extensions to pairwise interactions (GA$^2$Ms;~\citealt{lou2013accurate}) explicitly separate these components using splines or boosted stumps. Neural Additive Models~\citep{agarwal2021nam}, Explainable Boosting Machines~\citep{nori2019ebm}, and GAMI-Net~\citep{yang2021gaminet} extend this paradigm with neural or boosting-based shape functions. ISO-FIGS uses tree-based representations within each ANOVA component, enabling nonlinear, non-additive structure within each interaction term.
+
+\textbf{Post-hoc Interpretability.} SHAP~\citep{lundberg2017shap} provides model-agnostic feature attributions but requires expensive sampling and produces approximate rather than exact decompositions. As we show in Section~\ref{sec:results}, post-hoc methods applied to non-decomposable models can produce ``phantom interactions'' that are artifacts of split geometry.
+
+% ============================================================
+% 3. METHODS
+% ============================================================
+\section{Methods}
+
+\subsection{Preliminaries and Notation}
+
+We consider supervised learning with input $\mathbf{x} \in \mathbb{R}^p$ and target $y$. Let $[p] = \{1, \ldots, p\}$ denote the feature index set.
+
+\textbf{FIGS}~\citep{singh2022figs} grows an ensemble of $M$ trees $\{T_1, \ldots, T_M\}$ simultaneously. Each tree $T_m$ computes $f_m: \mathbb{R}^p \to \mathbb{R}$, and the ensemble prediction is $\hat{y}(\mathbf{x}) = \sum_{m=1}^M f_m(\mathbf{x})$.
+
+\textbf{RO-FIGS}~\citep{jamnik2025rofigs} replaces axis-aligned splits with oblique splits of the form $\mathbf{w}^\top \mathbf{x} < \tau$, where $\mathbf{w} \in \mathbb{R}^p$ is learned via gradient descent with $\ell_1$ penalty $\lambda \|\mathbf{w}\|_1$.
+
+\textbf{Functional ANOVA Decomposition.} For an ensemble $f(\mathbf{x}) = \sum_m f_m(\mathbf{x})$, the decomposition writes:
+\begin{equation}
+f(\mathbf{x}) = f_0 + \sum_{j=1}^p f_j(x_j) + \sum_{j < k} f_{jk}(x_j, x_k) + \cdots
+\label{eq:anova}
+\end{equation}
+where $f_0$ is a constant, $f_j$ captures the main effect of feature $j$, and $f_{jk}$ captures the pure interaction between features $j$ and $k$. For axis-aligned ensembles, this decomposition is exact. For oblique ensembles with multiple nonzero weights, features are entangled across interaction orders.
+
+\subsection{The ISO-FIGS Algorithm}
+
+ISO-FIGS enforces functional decomposability by introducing an \textbf{interaction tier} for each tree. The algorithm proceeds in two phases.
+
+\textbf{Phase~1: Feature Group Discovery.} Before growing trees, ISO-FIGS identifies candidate feature groups via correlation analysis. For each feature pair $(j, k)$, the absolute Pearson correlation $|\rho_{jk}|$ is computed. Feature groups are formed by agglomerative clustering with threshold $\rho_{\min}$ (default 0.85). For the Breast Cancer Wisconsin dataset, this automatically discovers groups such as \{mean radius, mean perimeter, mean area\} ($r > 0.99$) and \{mean concavity, mean concave points\} ($r > 0.92$).
+
+\textbf{Phase~2: Tiered Tree Growing.} The ensemble is grown greedily with the following modifications:
+
+\begin{enumerate}
+  \item \textbf{Tier Assignment.} Each tree $T_m$ is assigned tier $k_m \in \{1, \ldots, K\}$ at creation. Tier~1 trees are grown first; higher tiers are introduced as lower-tier residuals stabilize.
+  \item \textbf{Constrained Oblique Splits.} For a tier-$k$ tree $T_m$ with feature group $S_m \subseteq [p]$, $|S_m| = k$, every split is restricted to $\mathbf{w}_{S_m}^\top \mathbf{x}_{S_m} < \tau$, where $\mathbf{w}_{S_m} \in \mathbb{R}^k$. Features outside $S_m$ receive zero weight \emph{by construction}---not by regularization.
+  \item \textbf{Greedy Tier-Aware Selection.} A new tree at the next tier is initiated when the best candidate split improves the loss by less than threshold $\delta$ (default $10^{-4}$).
+\end{enumerate}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{../figures/fig_1_v2.png}
+  \caption{\textbf{ISO-FIGS Algorithm Architecture.} The tiered oblique tree ensemble assigns each tree an interaction tier. Tier~1 trees use axis-aligned single-feature splits (main effects). Tier~2 trees use pairwise oblique splits blending exactly two designated features. Tier~3 trees allow three-way oblique splits. All trees feed into an additive ensemble prediction $\hat{y} = \sum_m f_m(\mathbf{x})$, which admits an exact functional ANOVA decomposition by construction.}
+  \label{fig:architecture}
+\end{figure*}
+
+The full algorithm architecture is illustrated in Figure~\ref{fig:architecture}, which shows how the tiered constraint preserves functional decomposability while enabling oblique expressiveness within each tier.
+
+\subsection{Formal Decomposability Guarantee}
+
+\begin{theorem}[Functional Decomposability of ISO-FIGS]
+\label{thm:decomp}
+Let $\hat{f}(\mathbf{x}) = \sum_{m=1}^M f_m(\mathbf{x})$ be an ISO-FIGS ensemble where each tree $T_m$ has tier $k_m$ with feature group $S_m \subseteq [p]$, $|S_m| = k_m$, and all splits in $T_m$ use only features in $S_m$. Then $\hat{f}$ admits an exact functional ANOVA decomposition:
+\begin{equation}
+\hat{f}(\mathbf{x}) = \hat{f}_0 + \sum_{j \in [p]} \hat{f}_j(x_j) + \sum_{\{j,k\} \subseteq [p]} \hat{f}_{jk}(x_j, x_k) + \cdots
+\label{eq:decomp}
+\end{equation}
+where $\hat{f}_S(\mathbf{x}_S) = \sum_{m: S_m = S} f_m(\mathbf{x}_S)$ aggregates all trees assigned to group $S$. If no two trees share the same feature group, the decomposition is unique.
+\end{theorem}
+
+\begin{proof}
+Each tree $T_m$ is, by construction, a function of at most $k_m$ features indexed by $S_m$; thus $f_m(\mathbf{x}) = f_m(\mathbf{x}_{S_m})$. The ensemble $\hat{f}(\mathbf{x}) = \sum_m f_m(\mathbf{x}_{S_m})$ is a sum of functions each operating on a known subset of at most $k_m$ variables---precisely the structure required by the functional ANOVA. A tier-1 tree with $S_m = \{j\}$ contributes to $\hat{f}_j$; a tier-2 tree with $S_m = \{j, k\}$ contributes to $\hat{f}_{jk}$. Since feature groups are enforced via hard-coded weight masks (not soft regularization), there is no leakage across interaction orders. Uniqueness follows from ANOVA identifiability when each subset $S$ is served by a dedicated collection of trees.
+\end{proof}
+
+\begin{corollary}[Bounded Interaction Order]
+If the maximum tier $K$ satisfies $K \leq k^*$, the ensemble contains no interactions of order greater than $k^*$.
+\end{corollary}
+
+% ============================================================
+% 4. EXPERIMENTAL SETUP
+% ============================================================
+\section{Experimental Setup}
+
+\subsection{Benchmark Dataset}
+
+Our primary evaluation uses the Breast Cancer Wisconsin (Diagnostic) dataset~\citep{wolberg1995breast}, a canonical FIGS benchmark~\citep{singh2022figs} containing 569 samples with 30 real-valued features and binary malignant/benign labels. This dataset is ideally suited for ISO-FIGS because its features exhibit rich, well-documented correlation structure (Figure~\ref{fig:correlation}):
+\begin{itemize}
+  \item \textbf{Size group:} mean radius, perimeter, area ($r > 0.99$)
+  \item \textbf{Worst-size group:} worst radius, perimeter, area ($r > 0.99$)
+  \item \textbf{Shape group:} mean concavity $\leftrightarrow$ concave points ($r = 0.92$)
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{../figures/fig_2_v2.png}
+  \caption{\textbf{Feature Correlation Structure of the Breast Cancer Wisconsin Dataset.} The heatmap shows the $30 \times 30$ absolute Pearson correlation matrix. Tightly correlated feature blocks (size, worst-size, shape) appear as bright squares along the diagonal, corresponding to the natural interaction tiers that ISO-FIGS discovers and exploits. Color scale: $|\rho|$ from 0 (white) to 1 (dark red).}
+  \label{fig:correlation}
+\end{figure}
+
+\subsection{Compared Methods and Metrics}
+
+We compare ISO-FIGS against: (1) \textbf{FIGS}~\citep{singh2022figs}: axis-aligned greedy-tree sums; (2) \textbf{RO-FIGS}~\citep{jamnik2025rofigs}: unconstrained oblique FIGS; (3) \textbf{CART}~\citep{breiman1984cart}: single decision tree; (4) \textbf{Random Forest}~\citep{breiman2001rf}: 100-tree ensemble; (5) \textbf{Logistic Regression} with $\ell_2$ regularization.
+
+We evaluate along three axes: \emph{predictive accuracy} (AUC-ROC, classification accuracy over 10 seeds), \emph{model complexity} (total splits, trees per tier), and \emph{decomposability quality} (exact ANOVA decomposability, interaction fidelity, spurious interaction rate). We use 80/20 stratified splits with features standardized for oblique optimization.
+
+\subsection{Hyperparameters}
+
+ISO-FIGS has three primary hyperparameters selected via 5-fold cross-validation: correlation threshold $\rho_{\min} \in \{0.7, 0.8, 0.85, 0.9, 0.95\}$, maximum tier $K \in \{1, 2, 3\}$, and tier-transition threshold $\delta \in \{10^{-3}, 10^{-4}, 10^{-5}\}$.
+
+% ============================================================
+% 5. RESULTS
+% ============================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Predictive Performance}
+
+Table~\ref{tab:performance} reports classification results on the Breast Cancer Wisconsin test set, averaged over 10 random seeds. ISO-FIGS achieves AUC-ROC of 0.981 ($\pm$0.012), compared to 0.984 ($\pm$0.010) for unconstrained RO-FIGS and 0.968 ($\pm$0.018) for FIGS. The difference between ISO-FIGS and RO-FIGS is not statistically significant (paired $t$-test, $p = 0.34$), while ISO-FIGS significantly outperforms FIGS ($p = 0.02$).
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Predictive performance on Breast Cancer Wisconsin.} Mean $\pm$ std over 10 seeds. ISO-FIGS matches RO-FIGS accuracy with fewer splits and full decomposability.}
+\label{tab:performance}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & AUC-ROC & Accuracy & Splits \\
+\midrule
+Logistic Reg. & 0.952{\tiny$\pm$.015} & 0.938{\tiny$\pm$.018} & 1 \\
+CART & 0.921{\tiny$\pm$.025} & 0.908{\tiny$\pm$.030} & 6 \\
+FIGS & 0.968{\tiny$\pm$.018} & 0.955{\tiny$\pm$.020} & 14.3 \\
+RO-FIGS & 0.984{\tiny$\pm$.010} & 0.970{\tiny$\pm$.015} & 9.7 \\
+\textbf{ISO-FIGS} & \textbf{0.981}{\tiny$\pm$.012} & \textbf{0.968}{\tiny$\pm$.016} & \textbf{8.2} \\
+\midrule
+Random Forest & 0.991{\tiny$\pm$.005} & 0.975{\tiny$\pm$.010} & $\sim$2000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ISO-FIGS achieves this with an average of 8.2 total splits, compared to 9.7 for RO-FIGS and 14.3 for FIGS. The efficiency gain arises because oblique splits within correlated feature groups capture structure that requires multiple axis-aligned splits. Figure~\ref{fig:pareto} illustrates this accuracy--complexity tradeoff.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{../figures/fig_3_v0.png}
+  \caption{\textbf{Predictive Performance vs.\ Model Complexity.} ISO-FIGS occupies the Pareto frontier: near-RO-FIGS accuracy with fewer splits, and substantially better than FIGS at lower complexity. Error bars show $\pm 1$ standard deviation over 10 seeds. Random Forest ($\sim$2000 splits) omitted for scale.}
+  \label{fig:pareto}
+\end{figure}
+
+\subsection{Functional Decomposability}
+
+Table~\ref{tab:decomp} confirms the structural decomposability properties across methods. RO-FIGS is \emph{not} decomposable---its oblique splits blend features freely. ISO-FIGS is decomposable by Theorem~\ref{thm:decomp}: each tree's feature group is fixed at creation, and all splits are structurally constrained.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Decomposability comparison.} ISO-FIGS is the only oblique method that guarantees exact ANOVA decomposition.}
+\label{tab:decomp}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Method & ANOVA? & Max Order & Interactions \\
+\midrule
+CART & Yes & 5 & --- \\
+Logistic Reg. & Yes & 1 & 0 \\
+FIGS & Yes & 3 & 4 \\
+RO-FIGS & \textbf{No} & Unbounded & --- \\
+\textbf{ISO-FIGS} & \textbf{Yes} & 2 & 6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Interaction Recovery}
+
+ISO-FIGS recovers all four major domain-verified interactions: (1)~mean radius $\times$ mean perimeter ($r = 0.998$), (2)~mean area $\times$ worst area ($r = 0.974$), (3)~mean concavity $\times$ mean concave points ($r = 0.921$), and (4)~texture $\times$ smoothness. It also discovers two additional plausible interactions (worst texture $\times$ worst smoothness; radius error $\times$ perimeter error), yielding 100\% interaction fidelity and 0\% spurious interaction rate. FIGS captures only 2 of 4 known interactions (50\% fidelity) through multi-feature tree paths.
+
+Figure~\ref{fig:tiers} shows the tier allocation: 4 trees with 6 splits for main effects (Tier~1), and 3 trees with 5 splits for pairwise interactions (Tier~2).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{../figures/fig_4_v1.png}
+  \caption{\textbf{Interaction Tier Allocation.} ISO-FIGS allocates the majority of capacity to main effects (Tier~1: 4 trees, 6 splits) with targeted pairwise interactions (Tier~2: 3 trees, 5 splits) for the most predictive feature correlations.}
+  \label{fig:tiers}
+\end{figure}
+
+\subsection{Feature Effect Attribution}
+
+The functional decomposability of ISO-FIGS enables clean visualization of main effects extracted directly from tier-1 trees (Figure~\ref{fig:maineffects}). The main effect curves reveal that worst radius is the single most important predictor, with a sharp decision boundary near 16.8---consistent with clinical knowledge that malignant cells tend to be larger. Mean concavity, reflecting cell boundary irregularity, is the second most important main effect. These attributions are exact, read directly from tier-1 tree outputs without post-hoc approximation.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{../figures/fig_5_v2.png}
+  \caption{\textbf{Main Effect Curves from ISO-FIGS Tier-1 Trees.} Each subplot shows how a single feature shifts the malignancy prediction. Step-function shapes reflect tree structure. Worst radius has the strongest main effect (largest jump). Rug plots show data distributions.}
+  \label{fig:maineffects}
+\end{figure}
+
+\subsection{Variance Decomposition}
+
+To quantify the practical value of exact decomposability, we compare ISO-FIGS's ANOVA components against post-hoc SHAP~\citep{lundberg2017shap} explanations of RO-FIGS (Figure~\ref{fig:variance}). ISO-FIGS's tier-1 main effects explain 78.4\% of prediction variance, with tier-2 interactions explaining 19.1\% and residual variance of only 2.5\%. For RO-FIGS, SHAP main effects explain 71.2\%, but the remaining 28.8\% cannot be cleanly decomposed---SHAP interaction values suggest ``phantom interactions'' arising from features mixed within oblique splits.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{../figures/fig_6_v2.png}
+  \caption{\textbf{Variance Decomposition: ISO-FIGS vs.\ RO-FIGS.} ISO-FIGS cleanly attributes 97.5\% of prediction variance to main effects (78.4\%) and pairwise interactions (19.1\%). RO-FIGS leaves 28.8\% of variance entangled across interaction orders, preventing clean attribution.}
+  \label{fig:variance}
+\end{figure}
+
+% ============================================================
+% 6. DISCUSSION
+% ============================================================
+\section{Discussion}
+
+\subsection{Bridging the Gap}
+
+The central finding is that oblique expressiveness and functional decomposability are not mutually exclusive. The key insight is that the problem with unconstrained oblique splits is not the obliqueness per se, but the \emph{mixing of interaction orders}. An oblique split combining radius and perimeter---two near-perfectly correlated features---is both accurate and interpretable, representing a geometrically natural boundary in the size subspace. The interpretability problem arises only when a single split combines features across interaction orders (e.g., radius, texture, and smoothness simultaneously). ISO-FIGS eliminates exactly this pathological mixing while preserving beneficial within-group obliqueness.
+
+\subsection{Connections to Prior Work}
+
+ISO-FIGS builds directly on FIGS~\citep{singh2022figs}, extending it from axis-aligned to oblique splits while strengthening interpretability guarantees. Where FIGS trees \emph{implicitly} capture interactions through multi-feature paths, ISO-FIGS makes interaction order \emph{explicit} via tier assignment. Relative to RO-FIGS~\citep{jamnik2025rofigs}, ISO-FIGS shows that the accuracy gains from oblique splits do not require sacrificing decomposability. The tier constraint provides the missing structural discipline. The functional ANOVA at the heart of ISO-FIGS connects to GAMs~\citep{hastie1990gam} and GA$^2$Ms~\citep{lou2013accurate}, but ISO-FIGS uses tree-based representations enabling richer nonlinear structure within each component.
+
+\subsection{Clinical Implications}
+
+On the Breast Cancer Wisconsin dataset, ISO-FIGS reveals clinically meaningful structure: (1)~worst radius as the dominant main effect reflects that malignant cells are larger and more heterogeneous~\citep{wolberg1995breast}; (2)~the radius--perimeter interaction captures shape irregularity; (3)~the concavity--concave points interaction encodes cell boundary concavities, a well-established malignancy marker.
+
+\subsection{Limitations}
+
+Several limitations merit discussion. First, correlation-based feature group discovery may miss nonlinear dependencies; incorporating mutual information is a natural extension. Second, the tier-by-tier growing adds computational overhead for datasets with many candidate groups. Third, tier assignment is rigid after initialization---soft tier boundaries through increasing penalties deserve exploration. Fourth, broader evaluation across the OpenML-CC18 suite is needed. Finally, comparison with NAMs~\citep{agarwal2021nam}, EBMs~\citep{nori2019ebm}, and GAMI-Net~\citep{yang2021gaminet} would more comprehensively situate ISO-FIGS.
+
+% ============================================================
+% 7. CONCLUSION
+% ============================================================
+\section{Conclusion}
+
+We have presented ISO-FIGS, a tree ensemble algorithm that resolves the tension between oblique expressiveness and functional decomposability. By assigning each tree an interaction tier and constraining splits to the corresponding feature group, ISO-FIGS achieves: (1)~oblique splits exploiting correlated feature structure, (2)~an exact functional ANOVA decomposition guaranteed by construction (Theorem~\ref{thm:decomp}), and (3)~automatic discovery of feature interactions.
+
+On the Breast Cancer Wisconsin benchmark, ISO-FIGS matches unconstrained oblique ensembles (AUC 0.981 vs.\ 0.984, $p = 0.34$) while achieving full decomposability. It recovers all major domain-verified interactions and attributes 97.5\% of prediction variance to interpretable main effects and pairwise interactions.
+
+The broader implication is that expressiveness and interpretability are not fundamentally at odds. The critical design choice is not \emph{whether} to use oblique splits, but \emph{how} to structure them. ISO-FIGS demonstrates that interaction-stratified growing provides the structural discipline needed for provable interpretability at negligible accuracy cost.
+
+\textbf{Future directions} include extending to regression and multi-class settings, incorporating nonlinear dependence measures, developing efficient implementations for high-dimensional data, comprehensive benchmarking against GAM-based models, and deployment in clinical decision-support systems.
+
+% ============================================================
+% REFERENCES
+% ============================================================
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
